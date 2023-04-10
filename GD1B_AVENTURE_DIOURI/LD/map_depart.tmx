@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.9" tiledversion="1.9.2" orientation="orthogonal" renderorder="right-down" width="12" height="10" tilewidth="32" tileheight="32" infinite="0" nextlayerid="3" nextobjectid="1">
+ <editorsettings>
+  <export target="map_depart.json" format="json"/>
+ </editorsettings>
+ <tileset firstgid="1" name="assets_2" tilewidth="32" tileheight="32" tilecount="64" columns="8">
+  <image source="../2D/assets2.png" width="256" height="256"/>
+ </tileset>
+ <layer id="1" name="sol" width="12" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,
+1,57,58,59,57,58,0,0,57,58,59,2,
+47,18,19,19,19,19,19,19,19,19,20,48,
+55,26,17,25,17,25,17,25,17,25,28,56,
+63,26,25,17,25,17,25,17,25,17,28,64,
+47,26,17,25,17,25,17,25,17,25,28,56,
+55,26,25,17,25,17,25,17,25,17,28,48,
+63,26,17,25,17,25,17,25,17,25,28,56,
+55,34,35,35,35,35,35,35,35,35,36,64,
+9,60,61,62,60,61,62,60,60,61,62,10
+</data>
+ </layer>
+ <layer id="2" name="porte" width="12" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,13,14,0,0,0,0,
+0,0,0,0,0,0,21,22,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+</map>

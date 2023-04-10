@@ -1,0 +1,1822 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" /><title>Jeu De Nayle</title>
+<script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+
+<style type="text/css"> body 
+    
+        { margin: 0; 
+        }
+ 
+        #endGame{
+            display: none;
+            font-size: 100px;
+            color: red;
+            padding-top: 230px;
+            padding-left:110px ;
+            
+            position:absolute;
+            z-index:1
+        }
+
+        
+    
+    </style>
+</head>
+<body>
+    <script type="text/javascript">
+
+
+class salle_depart extends Phaser.Scene {
+    constructor() {
+        super("salle_depart"); // mettre le meme nom que le nom de la classe
+    }
+
+
+    preload() 
+    {
+        this.load.image("Phaser_assets", "2D/assets2.png");
+        this.load.tilemapTiledJSON("carte", "LD/map_depart.json");
+        this.load.spritesheet('perso', '2D/perso_spritesheet.png',
+            { frameWidth: 40, frameHeight: 80 });
+    }
+
+    create() {
+
+
+        // chargement de la carte
+        const carteDuNiveau = this.add.tilemap("carte");
+
+        // chargement du jeu de tuiles
+        const tileset = carteDuNiveau.addTilesetImage(
+            "assets_2",
+            "Phaser_assets"
+        );
+
+        const sol = carteDuNiveau.createLayer(
+            "sol",
+            tileset
+        );
+
+        const murs = carteDuNiveau.createLayer(
+            "murs",
+            tileset
+        );
+        const porte = carteDuNiveau.createLayer(
+            "porte",
+            tileset
+        );
+        const minuteur = carteDuNiveau.createLayer(
+            "minuteur",
+            tileset
+        );
+        murs.setCollisionByProperty({ estSolide: true }); 
+        minuteur.setCollisionByProperty({ estSolide: true }); 
+        porte.setCollisionByExclusion(-1, true);
+        this.player = this.physics.add.sprite(100, 100, 'perso');
+        this.physics.add.collider(this.player, porte, this.changeScene, null, this)
+        this.player.setCollideWorldBounds(true);
+        this.physics.add.collider(this.player, murs);
+        this.physics.add.collider(this.player, minuteur);
+        this.physics.world.setBounds(0, 0, 640, 640);
+        this.cameras.main.setBounds(0, 0, 640, 640);
+        this.cameras.main.zoom = 2;
+        this.cameras.main.startFollow(this.player);
+        this.player.setSize(32, 32)
+        this.player.setOffset(4,37)
+
+
+        this.anims.create({
+            key: 'front',
+            frames: this.anims.generateFrameNumbers('perso', { start: 0, end: 5 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'back',
+            frames: this.anims.generateFrameNumbers('perso', { start: 6, end: 11 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'turn',
+            frames: [{ key: 'perso', frame: 0 }],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: 'left',
+            frames: this.anims.generateFrameNumbers('perso', { start: 12, end: 17 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'right',
+            frames: this.anims.generateFrameNumbers('perso', { start: 18, end: 23 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+
+        //  Input Events
+        this.cursors = this.input.keyboard.createCursorKeys();
+
+    }
+
+
+    update() {
+        //if (gameOver) { return; }
+
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-160);
+            this.arret = false
+            this.player.anims.play('left', true);
+
+        }
+        else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(160);
+            this.arret = false
+            this.player.anims.play('right', true);
+
+        }
+
+        else {
+            this.player.setVelocityX(0);
+            this.arret = true
+
+
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-160);
+            this.arret = false
+            this.player.anims.play('back', true);
+        }
+        else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(160);
+            this.arret = false
+            this.player.anims.play('front', true);
+        }
+        else {
+            this.player.setVelocityY(0);
+
+            if (this.arret == true) {
+                this.player.anims.play('turn');
+            }
+        }
+    }
+
+    changeScene(player){
+        this.scene.start("salle_centre");
+    }
+}
+
+class salle_centre extends Phaser.Scene {
+    constructor() {
+        super( "salle_centre" ); // mettre le meme nom que le nom de la classe
+    }
+
+
+
+    preload() {
+        this.load.image("Phaser_assets", "2D/assets.png");
+        this.load.tilemapTiledJSON("salle_centre", "LD/salle_centre.json");
+
+        this.load.image("SpriteBarriere", "2D/SpriteBarriere.png");
+        this.load.image("SpriteHitBox", "2D/SpriteHitBox.png");
+        this.load.image("jetons1", "2D/jetons1.png");
+        this.load.image("jetons2", "2D/jetons2.png");
+        this.load.image("jetons3", "2D/jetons3.png");
+        
+
+        this.load.spritesheet('prison','2D/anime_droite.png',
+            { frameWidth: 64, frameHeight: 80 });
+
+        this.load.spritesheet('perso', '2D/perso_spritesheet.png',
+            { frameWidth: 40, frameHeight: 80 });
+        this.load.spritesheet('Ennemi', '2D/pions.png',
+            { frameWidth: 32, frameHeight: 48 });
+    }
+
+    create() {   
+        this.shiftchrono = 0;
+        this.chronoshiftdeux = 0;
+        this.possibilitedash = true;
+
+        // chargement de la carte
+        const carteDuNiveau = this.add.tilemap("salle_centre");
+
+        // chargement du jeu de tuiles
+        const tileset = carteDuNiveau.addTilesetImage(
+            "assets_2",
+            "Phaser_assets"
+        );
+
+        const sol = carteDuNiveau.createLayer(
+            "sol",
+            tileset
+        );
+
+        const trous = carteDuNiveau.createStaticLayer(
+            "trous",
+            tileset
+        );
+
+        const murs = carteDuNiveau.createLayer(
+            "murs",
+            tileset
+        );
+        const porte_avant_tour = carteDuNiveau.createLayer(
+            "porte_avant_tour",
+            tileset
+        );
+        const porte_depart = carteDuNiveau.createLayer(
+            "porte_depart",
+            tileset
+        );
+        const porte_fou = carteDuNiveau.createLayer(
+            "porte_fou",
+            tileset
+        );
+        const porte_cavalier = carteDuNiveau.createLayer(
+            "porte_cavalier",
+            tileset
+        );
+        const barrieres = carteDuNiveau.createLayer(
+            "barrieres",
+            tileset
+        );
+        const jetons = carteDuNiveau.createLayer(
+            "jetons",
+            tileset
+        );
+        murs.setCollisionByProperty({ estSolide: true }); 
+        barrieres.setCollisionByProperty({ estSolide: true });
+        porte_fou.setCollisionByExclusion(-1, true);
+        porte_avant_tour.setCollisionByExclusion(-1, true);
+        porte_cavalier.setCollisionByExclusion(-1, true);
+        porte_depart.setCollisionByExclusion(-1, true);
+        this.player = this.physics.add.sprite(500, 300, 'perso');
+
+        this.SpriteHitBox = this.physics.add.sprite(0, 0, 'SpriteHitBox');
+        this.SpriteHitBox.allowGravity = false;
+
+        // Je définis un dossier d'ennemis, ainsi lors de la création d'un ennemi, il suffira d'utiliser this.ennemies.create( CoordX, CoordY, Nom )
+        this.ennemies = this.physics.add.group({ allowGravity: false, collideWorldBounds: true });
+        this.ennemiUn = this.ennemies.create(800,300,'Ennemi');
+
+        this.groupbarriere = this.physics.add.group({ allowGravity: false, collideWorldBounds: true });
+        this.barriereUne = this.groupbarriere.create(400,300,'SpriteBarriere').setImmovable(true);
+
+        this.groupjeton = this.physics.add.group({allowGravity: false, colldeWorldBounds: true});
+        this.jeton1 = this.groupjeton.create(440, 340, 'jeton1').setImmovable(true);
+        // J'utilise un overlap entre mon player et mon ennemi, ce qui permet au joueur de passer au travers de l'ennemi
+        this.physics.add.overlap(this.player, this.ennemies, this.TakeDamage, null, this)
+        this.physics.add.collider(this.player, this.jeton1, this.collectjeton1,null, this)
+        this.physics.add.collider(this.player, porte_fou, this.changeSceneFou, null, this)
+        this.physics.add.collider(this.player, porte_avant_tour, this.ChangeSceneAvantTour, null, this)
+        this.physics.add.collider(this.player, porte_depart, this.ChangeSceneDepart, null, this)
+        this.physics.add.collider(this.player, porte_cavalier, this.ChangeSceneCavalier, null, this)
+        this.physics.add.collider(this.player, this.groupbarriere);
+
+        this.physics.add.collider(this.SpriteHitBox, this.groupbarriere, this.BreakBarrierOne, null, this);
+        this.physics.add.collider(this.SpriteHitBox, this.ennemies, this.KillennemiOne, null, this);
+
+        this.player.setCollideWorldBounds(true);
+        this.physics.add.collider(this.player, murs);
+        this.physics.add.collider(this.ennemiUn, murs);
+        this.physics.add.collider(this.player, barrieres);
+        this.physics.add.collider(this.ennemiUn, barrieres);
+        this.physics.world.setBounds(0, 0, 1344, 1184);
+        this.cameras.main.setBounds(0, 0, 1344, 1184);
+        this.cameras.main.zoom = 2;
+        this.cameras.main.startFollow(this.player);
+        this.player.setSize(32, 32)
+        this.player.setOffset(14,48)
+
+
+        this.anims.create({
+            key: 'front',
+            frames: this.anims.generateFrameNumbers('perso', { start: 0, end: 5 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'back',
+            frames: this.anims.generateFrameNumbers('perso', { start: 6, end: 11 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'urn',
+            frames: [{ key: 'prison', frame: 0 }],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: 'eft',
+            frames: this.anims.generateFrameNumbers('prison', { start: 9, end: 17 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'Aight',
+            frames: this.anims.generateFrameNumbers('prison', { start: 0, end: 8 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+
+        //  Input Events
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.clavier = this.input.keyboard.addKeys('SHIFT');
+        this.scoreJetons=this.add.text(445,230,'score: 0',{fontSize:'32px',fill:'#FFF'});
+        this.scoreJetons.setScrollFactor(0);
+        this.scoreJetons.setScale(0.7); 
+        this.score = 0
+    }
+
+    update() {
+        
+        console.log(this.shiftchrono);
+        if (this.gameOver) { return; }
+
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-160);
+            this.arret = false
+            this.player.anims.play('eft', true);
+
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityX(-350);
+                this.SpriteHitBox.x = this.player.x - 32;
+                this.SpriteHitBox.y = this.player.y
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+
+
+        else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(160);
+            this.arret = false
+            this.player.anims.play('Aight', true);
+
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityX(350);
+                this.SpriteHitBox.x = this.player.x + 32;
+                this.SpriteHitBox.y = this.player.y
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+
+        }
+
+        else {
+            this.player.setVelocityX(0);
+            this.arret = true
+
+
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-160);
+            this.arret = false
+            this.player.anims.play('back', true);
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityY(-350);
+                this.SpriteHitBox.x = this.player.x ;
+                this.SpriteHitBox.y = this.player.y -32;
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+        else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(160);
+            this.arret = false
+            this.player.anims.play('front', true);
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityY(350);
+                this.SpriteHitBox.x = this.player.x ;
+                this.SpriteHitBox.y = this.player.y +64;
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+        else {
+            this.player.setVelocityY(0);
+
+            if (this.arret == true) {
+                this.player.anims.play('urn');
+            }
+        }
+
+
+        if (this.ennemiUn.x+3 < this.player.x-3){
+            this.ennemiUn.setVelocityX(50);
+        }
+        if (this.ennemiUn.y-3 > this.player.y+3){
+                this.ennemiUn.setVelocityY(-50);
+            }
+        if (this.ennemiUn.x-3 > this.player.x+3){
+            this.ennemiUn.setVelocityX(-50);
+        }
+        if (this.ennemiUn.y+3 < this.player.y-3){
+                this.ennemiUn.setVelocityY(50);
+            }
+
+
+            if (this.possibilitedash == false){
+                if (this.chronoshiftdeux < 360){
+                    this.chronoshiftdeux ++;
+                }
+                if (this.chronoshiftdeux >= 360){
+                    this.chronoshiftdeux = 0;
+                    this.possibilitedash = true;
+                }
+            }
+
+    }
+
+    TakeDamage(){
+        console.log("Je dois prendre des dégâts");
+        this.physics.pause();
+        this.player.setTint(0xff0000);
+        this.gameOver = true;
+    }
+    BreakBarrierOne(){
+        this.barriereUne.disableBody(true, true);
+    }
+    KillennemiOne(){
+        console.log("Test")
+        this.ennemiUn.disableBody(true, true);
+    }
+
+    changeSceneFou(player){
+        this.scene.start("salle_fou");
+    }
+
+    ChangeSceneAvantTour(player){
+        this.scene.start("salle_avant_tour");
+    }
+    ChangeSceneCavalier(player){
+        this.scene.start("salle_cavalier");
+    }
+    ChangeSceneDepart(player){
+        this.scene.start("salle_depart");
+    }
+    collectjeton1(player){
+        this.jeton1.disableBody(true, true); 
+        this.score += 1; 
+        this.scoreJetons.setText('Score: ' + score); 
+    }
+}
+
+
+class salle_fou extends Phaser.Scene {
+    constructor() {
+        super("salle_fou"); // mettre le meme nom que le nom de la classe
+    }
+
+
+    preload() 
+    {
+        this.load.image("Phaser_assets", "2D/assets2.png");
+        this.load.tilemapTiledJSON("map", "LD/map_fou.json");
+        this.load.spritesheet('perso_inverse', '2D/sprite_sheet_inverse.png',
+            { frameWidth: 40, frameHeight: 70 });
+    }
+
+    create() {
+
+
+        // chargement de la carte
+        const carteDuNiveau = this.add.tilemap("map");
+
+        // chargement du jeu de tuiles
+        const tileset = carteDuNiveau.addTilesetImage(
+            "assets_2",
+            "Phaser_assets"
+        );
+
+        const sol = carteDuNiveau.createStaticLayer(
+            "sol",
+            tileset
+        );
+
+        const murs = carteDuNiveau.createStaticLayer(
+            "murs",
+            tileset
+        );
+        const porte = carteDuNiveau.createStaticLayer(
+            "porte",
+            tileset
+        );
+        murs.setCollisionByProperty({ estSolide: true }); 
+        porte.setCollisionByExclusion(-1, true);
+        this.player = this.physics.add.sprite(100, 512, 'perso_inverse');
+        this.physics.add.collider(this.player, porte, this.changeScene, null, this)
+        this.player.setCollideWorldBounds(true);
+        this.physics.add.collider(this.player, murs);
+        this.physics.world.setBounds(0, 0, 928, 928);
+        this.cameras.main.setBounds(0, 0, 928, 928);
+        this.cameras.main.zoom = 2;
+        this.cameras.main.startFollow(this.player);
+        this.player.setSize(32, 32)
+        this.player.setOffset(4,37)
+
+
+        this.anims.create({
+            key: 'front_inverse',
+            frames: this.anims.generateFrameNumbers('perso_inverse', { start: 0, end: 5 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'back_inverse',
+            frames: this.anims.generateFrameNumbers('perso_inverse', { start: 6, end: 11 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'turn_inverse',
+            frames: [{ key: 'perso_inverse', frame: 0 }],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: 'left_inverse',
+            frames: this.anims.generateFrameNumbers('perso_inverse', { start: 12, end: 17 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'right_inverse',
+            frames: this.anims.generateFrameNumbers('perso_inverse', { start: 18, end: 23 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+
+        //  Input Events
+        this.cursors = this.input.keyboard.createCursorKeys();
+
+    }
+
+
+    update() {
+        //if (gameOver) { return; }
+
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(160);
+            this.arret = false
+            this.player.anims.play('right_inverse', true);
+
+        }
+        else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(-160);
+            this.arret = false
+            this.player.anims.play('left_inverse', true);
+
+        }
+
+        else {
+            this.player.setVelocityX(0);
+            this.arret = true
+
+
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(160);
+            this.arret = false
+            this.player.anims.play('front_inverse', true);
+        }
+        else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(-160);
+            this.arret = false
+            this.player.anims.play('back_inverse', true);
+        }
+        else {
+            this.player.setVelocityY(0);
+
+            if (this.arret == true) {
+                this.player.anims.play('turn_inverse');
+            }
+        }
+    }
+
+    changeScene(player){
+        this.scene.start("salle_centre");
+    }
+}
+
+class salle_avant_tour extends Phaser.Scene {
+    constructor() {
+        super( "salle_avant_tour" ); // mettre le meme nom que le nom de la classe
+    }
+
+
+
+    preload() {
+        this.load.image("Phaser_assets", "2D/assets.png");
+        this.load.tilemapTiledJSON("salle_avant_tour", "LD/salle_avant_tour.json");
+
+        this.load.image("SpriteBarriere2", "2D/SpriteBarriere2.png");
+        this.load.image("SpriteHitBox", "2D/SpriteHitBox.png");
+
+        this.load.spritesheet('prison','2D/anime_droite.png',
+            { frameWidth: 64, frameHeight: 80 });
+
+        this.load.spritesheet('perso', '2D/perso_spritesheet.png',
+            { frameWidth: 40, frameHeight: 80 });
+        this.load.spritesheet('Ennemi', '2D/pions.png',
+            { frameWidth: 32, frameHeight: 48 });
+    }
+
+    create() {
+
+        this.shiftchrono = 0;
+        this.chronoshiftdeux = 0;
+        this.possibilitedash = true;
+
+        // chargement de la carte
+        const carteDuNiveau = this.add.tilemap("salle_avant_tour");
+
+        // chargement du jeu de tuiles
+        const tileset = carteDuNiveau.addTilesetImage(
+            "assets_2",
+            "Phaser_assets"
+        );
+
+        const sol = carteDuNiveau.createLayer(
+            "sol",
+            tileset
+        );
+
+        const murs = carteDuNiveau.createLayer(
+            "murs",
+            tileset
+        );
+        const porte_tour = carteDuNiveau.createLayer(
+            "porte_tour",
+            tileset
+        );
+        const porte_centre = carteDuNiveau.createLayer(
+            "porte_centre",
+            tileset
+        );
+        murs.setCollisionByProperty({ estSolide: true }); 
+        porte_centre.setCollisionByExclusion(-1, true);
+        porte_tour.setCollisionByExclusion(-1, true);
+        this.player = this.physics.add.sprite(352, 128, 'perso');
+
+        this.SpriteHitBox = this.physics.add.sprite(0, 0, 'SpriteHitBox');
+        this.SpriteHitBox.allowGravity = false;
+
+        this.groupbarriere = this.physics.add.group({ allowGravity: false, collideWorldBounds: true });
+        this.barriereUne = this.groupbarriere.create(108,64,'SpriteBarriere2').setImmovable(true);
+        this.barriereDeux = this.groupbarriere.create(108,128,'SpriteBarriere2').setImmovable(true);
+        this.barriereTrois = this.groupbarriere.create(172,192,'SpriteBarriere2').setImmovable(true);
+        this.barriereQuatre = this.groupbarriere.create(172,128,'SpriteBarriere2').setImmovable(true);
+        this.barriereCinq = this.groupbarriere.create(236,64,'SpriteBarriere2').setImmovable(true);
+        this.barriereSix = this.groupbarriere.create(236,128,'SpriteBarriere2').setImmovable(true);
+        this.barriereSept = this.groupbarriere.create(300,192,'SpriteBarriere2').setImmovable(true);
+        this.barriereHuit = this.groupbarriere.create(300,128,'SpriteBarriere2').setImmovable(true);
+
+        // J'utilise un overlap entre mon player et mon ennemi, ce qui permet au joueur de passer au travers de l'ennemi
+        this.physics.add.overlap(this.player, this.ennemies, this.TakeDamage, null, this)
+
+        this.physics.add.collider(this.player, porte_centre, this.changeSceneCentre, null, this)
+        this.physics.add.collider(this.player, porte_tour, this.changeSceneTour, null, this)
+        this.physics.add.collider(this.player, this.groupbarriere);
+
+        this.physics.add.collider(this.SpriteHitBox, this.barriereUne, this.BreakBarrierOne, null, this);
+        this.physics.add.collider(this.SpriteHitBox, this.barriereDeux, this.BreakBarrierTwo, null, this);
+        this.physics.add.collider(this.SpriteHitBox, this.barriereTrois, this.BreakBarrierThree, null, this);
+        this.physics.add.collider(this.SpriteHitBox, this.barriereQuatre, this.BreakBarrierFour, null, this);
+        this.physics.add.collider(this.SpriteHitBox, this.barriereCinq, this.BreakBarrierFive, null, this);
+        this.physics.add.collider(this.SpriteHitBox, this.barriereSix, this.BreakBarrierSix, null, this);
+        this.physics.add.collider(this.SpriteHitBox, this.barriereSept, this.BreakBarrierSeven, null, this);
+        this.physics.add.collider(this.SpriteHitBox, this.barriereHuit, this.BreakBarrierEight, null, this);
+        this.physics.add.collider(this.SpriteHitBox, this.ennemies, this.KillennemiOne, null, this);
+
+        this.player.setCollideWorldBounds(true);
+        this.physics.add.collider(this.player, murs);
+        this.physics.world.setBounds(0, 0, 448, 246);
+        this.cameras.main.setBounds(0, 0, 448, 256);
+        this.cameras.main.zoom = 2;
+        this.cameras.main.startFollow(this.player);
+        this.player.setSize(32, 32)
+        this.player.setOffset(14,48)
+
+
+        this.anims.create({
+            key: 'front',
+            frames: this.anims.generateFrameNumbers('perso', { start: 0, end: 5 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'back',
+            frames: this.anims.generateFrameNumbers('perso', { start: 6, end: 11 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'urn',
+            frames: [{ key: 'prison', frame: 0 }],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: 'eft',
+            frames: this.anims.generateFrameNumbers('prison', { start: 9, end: 17 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'Aight',
+            frames: this.anims.generateFrameNumbers('prison', { start: 0, end: 8 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+
+        //  Input Events
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.clavier = this.input.keyboard.addKeys('SHIFT');
+
+    }
+
+    update() {
+        
+        console.log(this.shiftchrono);
+        if (this.gameOver) { return; }
+
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-160);
+            this.arret = false
+            this.player.anims.play('eft', true);
+
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityX(-350);
+                this.SpriteHitBox.x = this.player.x - 32;
+                this.SpriteHitBox.y = this.player.y
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+
+
+        else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(160);
+            this.arret = false
+            this.player.anims.play('Aight', true);
+
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityX(350);
+                this.SpriteHitBox.x = this.player.x + 32;
+                this.SpriteHitBox.y = this.player.y
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+
+        }
+
+        else {
+            this.player.setVelocityX(0);
+            this.arret = true
+
+
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-160);
+            this.arret = false
+            this.player.anims.play('back', true);
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityY(-350);
+                this.SpriteHitBox.x = this.player.x ;
+                this.SpriteHitBox.y = this.player.y -32;
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+        else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(160);
+            this.arret = false
+            this.player.anims.play('front', true);
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityY(350);
+                this.SpriteHitBox.x = this.player.x ;
+                this.SpriteHitBox.y = this.player.y +64;
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+        else {
+            this.player.setVelocityY(0);
+
+            if (this.arret == true) {
+                this.player.anims.play('urn');
+            }
+        }
+
+
+
+            if (this.possibilitedash == false){
+                if (this.chronoshiftdeux < 360){
+                    this.chronoshiftdeux ++;
+                }
+                if (this.chronoshiftdeux >= 360){
+                    this.chronoshiftdeux = 0;
+                    this.possibilitedash = true;
+                }
+            }
+
+    }
+
+    TakeDamage(){
+        console.log("Je dois prendre des dégâts");
+        this.physics.pause();
+        this.player.setTint(0xff0000);
+        this.gameOver = true;
+    }
+    BreakBarrierOne(){
+        this.barriereUne.disableBody(true, true);
+    }
+    BreakBarrierTwo(){
+        this.barriereDeux.disableBody(true, true);
+    }
+    BreakBarrierThree(){
+        this.barriereTrois.disableBody(true, true);
+    }
+    BreakBarrierFour(){
+        this.barriereQuatre.disableBody(true, true);
+    }
+    BreakBarrierFive(){
+        this.barriereCinq.disableBody(true, true);
+    }
+    BreakBarrierSix(){
+        this.barriereSix.disableBody(true, true);
+    }
+    BreakBarrierSeven(){
+        this.barriereSept.disableBody(true, true);
+    }
+    BreakBarrierEight(){
+        this.barriereHuit.disableBody(true, true);
+    }
+    KillennemiOne(){
+        console.log("Test")
+        this.ennemiUn.disableBody(true, true);
+    }
+
+    changeSceneCentre(player){
+        this.scene.start("salle_centre");
+    }
+    changeSceneTour(player){
+        this.scene.start("salle_tour");
+    }
+
+
+}
+
+class salle_tour extends Phaser.Scene {
+    constructor() {
+        super( "salle_tour" ); // mettre le meme nom que le nom de la classe
+    }
+
+
+
+    preload() {
+        this.load.image("Phaser_assets", "2D/assets.png");
+        this.load.tilemapTiledJSON("salle_tour", "LD/map_tour.json");
+
+        this.load.image("SpriteBarriere", "2D/SpriteBarriere.png");
+        this.load.image("SpriteHitBox", "2D/SpriteHitBox.png");
+
+        this.load.spritesheet('prison','2D/anime_droite.png',
+            { frameWidth: 64, frameHeight: 80 });
+
+        this.load.spritesheet('perso', '2D/perso_spritesheet.png',
+            { frameWidth: 40, frameHeight: 80 });
+        this.load.spritesheet('Ennemi', '2D/pions.png',
+            { frameWidth: 32, frameHeight: 48 });
+    }
+
+    create() {
+
+        this.shiftchrono = 0;
+        this.chronoshiftdeux = 0;
+        this.possibilitedash = true;
+
+        // chargement de la carte
+        const carteDuNiveau = this.add.tilemap("salle_tour");
+
+        // chargement du jeu de tuiles
+        const tileset = carteDuNiveau.addTilesetImage(
+            "assets_2",
+            "Phaser_assets"
+        );
+
+        const sol = carteDuNiveau.createLayer(
+            "sol",
+            tileset
+        );
+
+        const murs = carteDuNiveau.createLayer(
+            "murs",
+            tileset
+        );
+        const porte_avant = carteDuNiveau.createLayer(
+            "porte_avant",
+            tileset
+        );
+
+
+        murs.setCollisionByProperty({ estSolide: true }); 
+        porte_avant.setCollisionByExclusion(-1, true);
+        this.player = this.physics.add.sprite(100, 300, 'perso');
+
+        this.SpriteHitBox = this.physics.add.sprite(0, 0, 'SpriteHitBox');
+        this.SpriteHitBox.allowGravity = false;
+
+        // Je définis un dossier d'ennemis, ainsi lors de la création d'un ennemi, il suffira d'utiliser this.ennemies.create( CoordX, CoordY, Nom )
+        this.ennemies = this.physics.add.group({ allowGravity: false, collideWorldBounds: true });
+        this.ennemiUn = this.ennemies.create(400,300,'Ennemi');
+
+
+
+        // J'utilise un overlap entre mon player et mon ennemi, ce qui permet au joueur de passer au travers de l'ennemi
+        this.physics.add.overlap(this.player, this.ennemies, this.TakeDamage, null, this)
+
+        this.physics.add.collider(this.player, porte_avant, this.ChangeSceneAvantTour, null, this)
+        this.physics.add.collider(this.SpriteHitBox, this.ennemies, this.KillennemiOne, null, this);
+
+        this.player.setCollideWorldBounds(true);
+        this.physics.add.collider(this.player, murs);
+        this.physics.add.collider(this.ennemiUn, murs);
+        this.physics.world.setBounds(0, 0, 704, 608);
+        this.cameras.main.setBounds(0, 0, 704, 608);
+        this.cameras.main.zoom = 2;
+        this.cameras.main.startFollow(this.player);
+        this.player.setSize(32, 32)
+        this.player.setOffset(14,48)
+
+
+        this.anims.create({
+            key: 'front',
+            frames: this.anims.generateFrameNumbers('perso', { start: 0, end: 5 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'back',
+            frames: this.anims.generateFrameNumbers('perso', { start: 6, end: 11 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'urn',
+            frames: [{ key: 'prison', frame: 0 }],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: 'eft',
+            frames: this.anims.generateFrameNumbers('prison', { start: 9, end: 17 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'Aight',
+            frames: this.anims.generateFrameNumbers('prison', { start: 0, end: 8 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+
+        //  Input Events
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.clavier = this.input.keyboard.addKeys('SHIFT');
+
+    }
+
+    update() {
+        
+        console.log(this.shiftchrono);
+        if (this.gameOver) { return; }
+
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-160);
+            this.arret = false
+            this.player.anims.play('eft', true);
+
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityX(-350);
+                this.SpriteHitBox.x = this.player.x - 32;
+                this.SpriteHitBox.y = this.player.y
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+
+
+        else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(160);
+            this.arret = false
+            this.player.anims.play('Aight', true);
+
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityX(350);
+                this.SpriteHitBox.x = this.player.x + 32;
+                this.SpriteHitBox.y = this.player.y
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+
+        }
+
+        else {
+            this.player.setVelocityX(0);
+            this.arret = true
+
+
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-160);
+            this.arret = false
+            this.player.anims.play('back', true);
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityY(-350);
+                this.SpriteHitBox.x = this.player.x ;
+                this.SpriteHitBox.y = this.player.y -32;
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+        else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(160);
+            this.arret = false
+            this.player.anims.play('front', true);
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityY(350);
+                this.SpriteHitBox.x = this.player.x ;
+                this.SpriteHitBox.y = this.player.y +64;
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+        else {
+            this.player.setVelocityY(0);
+
+            if (this.arret == true) {
+                this.player.anims.play('urn');
+            }
+        }
+
+
+        if (this.ennemiUn.x+3 < this.player.x-3){
+            this.ennemiUn.setVelocityX(50);
+        }
+        if (this.ennemiUn.y-3 > this.player.y+3){
+                this.ennemiUn.setVelocityY(-50);
+            }
+        if (this.ennemiUn.x-3 > this.player.x+3){
+            this.ennemiUn.setVelocityX(-50);
+        }
+        if (this.ennemiUn.y+3 < this.player.y-3){
+                this.ennemiUn.setVelocityY(50);
+            }
+
+
+            if (this.possibilitedash == false){
+                if (this.chronoshiftdeux < 360){
+                    this.chronoshiftdeux ++;
+                }
+                if (this.chronoshiftdeux >= 360){
+                    this.chronoshiftdeux = 0;
+                    this.possibilitedash = true;
+                }
+            }
+
+    }
+
+    TakeDamage(){
+        console.log("Je dois prendre des dégâts");
+        this.physics.pause();
+        this.player.setTint(0xff0000);
+        this.gameOver = true;
+    }
+    KillennemiOne(){
+        console.log("Test")
+        this.ennemiUn.disableBody(true, true);
+    }
+
+    changeSceneFou(player){
+        this.scene.start("salle_fou");
+    }
+
+    ChangeSceneAvantTour(player){
+        this.scene.start("salle_avant_tour");
+    }
+}
+
+class salle_cavalier extends Phaser.Scene {
+    constructor() {
+        super( "salle_cavalier" ); // mettre le meme nom que le nom de la classe
+    }
+
+
+
+    preload() {
+        this.load.image("Phaser_assets", "2D/assets.png");
+        this.load.tilemapTiledJSON("salle_cavalier", "LD/map_cavalier.json");
+
+        this.load.image("SpriteHitBox", "2D/SpriteHitBox.png");
+
+        this.load.spritesheet('prison','2D/anime_droite.png',
+            { frameWidth: 64, frameHeight: 80 });
+
+        this.load.spritesheet('perso', '2D/perso_spritesheet.png',
+            { frameWidth: 40, frameHeight: 80 });
+        this.load.spritesheet('Ennemi', '2D/pions.png',
+            { frameWidth: 32, frameHeight: 48 });
+    }
+
+    create() {
+
+        this.shiftchrono = 0;
+        this.chronoshiftdeux = 0;
+        this.possibilitedash = true;
+
+        // chargement de la carte
+        const carteDuNiveau = this.add.tilemap("salle_cavalier");
+
+        // chargement du jeu de tuiles
+        const tileset = carteDuNiveau.addTilesetImage(
+            "assets_2",
+            "Phaser_assets"
+        );
+
+        const sol = carteDuNiveau.createLayer(
+            "sol",
+            tileset
+        );
+
+        const trous = carteDuNiveau.createLayer(
+            "trous",
+            tileset
+        );
+
+        const murs = carteDuNiveau.createLayer(
+            "murs",
+            tileset
+        );
+        const porte_centre = carteDuNiveau.createLayer(
+            "porte_centre",
+            tileset
+        );
+        const porte_reine = carteDuNiveau.createLayer(
+            "porte_reine",
+            tileset
+        );
+
+
+        murs.setCollisionByProperty({ estSolide: true }); 
+        trous.setCollisionByProperty({ estPassable: true });
+        porte_centre.setCollisionByExclusion(-1, true);
+        porte_reine.setCollisionByExclusion(-1, true);
+        this.player = this.physics.add.sprite(100, 300, 'perso');
+
+        this.SpriteHitBox = this.physics.add.sprite(0, 0, 'SpriteHitBox');
+        this.SpriteHitBox.allowGravity = false;
+
+        // Je définis un dossier d'ennemis, ainsi lors de la création d'un ennemi, il suffira d'utiliser this.ennemies.create( CoordX, CoordY, Nom )
+        this.ennemies = this.physics.add.group({ allowGravity: false, collideWorldBounds: true });
+        this.ennemiUn = this.ennemies.create(400,300,'Ennemi');
+
+
+
+        // J'utilise un overlap entre mon player et mon ennemi, ce qui permet au joueur de passer au travers de l'ennemi
+        this.physics.add.overlap(this.player, this.ennemies, this.TakeDamage, null, this)
+
+        this.physics.add.collider(this.player, porte_centre, this.changeSceneCentre, null, this)
+        this.physics.add.collider(this.player, porte_reine, this.changeSceneReine, null, this)
+        this.physics.add.collider(this.SpriteHitBox, this.ennemies, this.KillennemiOne, null, this);
+
+        this.player.setCollideWorldBounds(true);
+        this.physics.add.collider(this.player, murs);
+        this.physics.add.collider(this.ennemiUn, murs);
+        this.physics.world.setBounds(0, 0, 672, 672);
+        this.cameras.main.setBounds(0, 0, 672, 672);
+        this.cameras.main.zoom = 2;
+        this.cameras.main.startFollow(this.player);
+        this.player.setSize(32, 32)
+        this.player.setOffset(14,48)
+
+
+        this.anims.create({
+            key: 'front',
+            frames: this.anims.generateFrameNumbers('perso', { start: 0, end: 5 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'back',
+            frames: this.anims.generateFrameNumbers('perso', { start: 6, end: 11 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'urn',
+            frames: [{ key: 'prison', frame: 0 }],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: 'eft',
+            frames: this.anims.generateFrameNumbers('prison', { start: 9, end: 17 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'Aight',
+            frames: this.anims.generateFrameNumbers('prison', { start: 0, end: 8 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+
+        //  Input Events
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.clavier = this.input.keyboard.addKeys('SHIFT');
+
+    }
+
+    update() {
+        
+        console.log(this.shiftchrono);
+        if (this.gameOver) { return; }
+
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-160);
+            this.arret = false
+            this.player.anims.play('eft', true);
+
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityX(-350);
+                this.SpriteHitBox.x = this.player.x - 32;
+                this.SpriteHitBox.y = this.player.y
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+
+
+        else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(160);
+            this.arret = false
+            this.player.anims.play('Aight', true);
+
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityX(350);
+                this.SpriteHitBox.x = this.player.x + 32;
+                this.SpriteHitBox.y = this.player.y
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+
+        }
+
+        else {
+            this.player.setVelocityX(0);
+            this.arret = true
+
+
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-160);
+            this.arret = false
+            this.player.anims.play('back', true);
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityY(-350);
+                this.SpriteHitBox.x = this.player.x ;
+                this.SpriteHitBox.y = this.player.y -32;
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+        else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(160);
+            this.arret = false
+            this.player.anims.play('front', true);
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityY(350);
+                this.SpriteHitBox.x = this.player.x ;
+                this.SpriteHitBox.y = this.player.y +64;
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+        else {
+            this.player.setVelocityY(0);
+
+            if (this.arret == true) {
+                this.player.anims.play('urn');
+            }
+        }
+
+
+        if (this.ennemiUn.x+3 < this.player.x-3){
+            this.ennemiUn.setVelocityX(50);
+        }
+        if (this.ennemiUn.y-3 > this.player.y+3){
+                this.ennemiUn.setVelocityY(-50);
+            }
+        if (this.ennemiUn.x-3 > this.player.x+3){
+            this.ennemiUn.setVelocityX(-50);
+        }
+        if (this.ennemiUn.y+3 < this.player.y-3){
+                this.ennemiUn.setVelocityY(50);
+            }
+
+
+            if (this.possibilitedash == false){
+                if (this.chronoshiftdeux < 360){
+                    this.chronoshiftdeux ++;
+                }
+                if (this.chronoshiftdeux >= 360){
+                    this.chronoshiftdeux = 0;
+                    this.possibilitedash = true;
+                }
+            }
+
+    }
+
+    TakeDamage(){
+        console.log("Je dois prendre des dégâts");
+        this.physics.pause();
+        this.player.setTint(0xff0000);
+        this.gameOver = true;
+    }
+    KillennemiOne(){
+        console.log("Test")
+        this.ennemiUn.disableBody(true, true);
+    }
+
+    changeSceneCentre(player){
+        this.scene.start("salle_centre");
+    }
+    changeSceneReine(player){
+        this.scene.start("salle_reine");
+    }
+
+}
+
+class salle_reine extends Phaser.Scene {
+    constructor() {
+        super( "salle_reine" ); // mettre le meme nom que le nom de la classe
+    }
+
+
+
+    preload() {
+        this.load.image("Phaser_assets", "2D/assets.png");
+        this.load.tilemapTiledJSON("salle_reine", "LD/map_reine.json");
+
+        this.load.image("SpriteHitBox", "2D/SpriteHitBox.png");
+        this.load.image("SpriteBarriere", "2D/SpriteBarriere.png");
+        this.load.image("SpriteBarriere2", "2D/SpriteBarriere2.png");
+
+        this.load.spritesheet('prison','2D/anime_droite.png',
+            { frameWidth: 64, frameHeight: 80 });
+
+        this.load.spritesheet('perso', '2D/perso_spritesheet.png',
+            { frameWidth: 40, frameHeight: 80 });
+        this.load.spritesheet('Ennemi', '2D/pions.png',
+            { frameWidth: 32, frameHeight: 48 });
+    }
+
+    create() {
+
+        this.shiftchrono = 0;
+        this.chronoshiftdeux = 0;
+        this.possibilitedash = true;
+
+        // chargement de la carte
+        const carteDuNiveau = this.add.tilemap("salle_reine");
+
+        // chargement du jeu de tuiles
+        const tileset = carteDuNiveau.addTilesetImage(
+            "assets_2",
+            "Phaser_assets"
+        );
+
+        const sol = carteDuNiveau.createLayer(
+            "sol",
+            tileset
+        );
+
+        const trous = carteDuNiveau.createLayer(
+            "trous",
+            tileset
+        );
+
+        const murs = carteDuNiveau.createLayer(
+            "murs",
+            tileset
+        );
+        const porte_cavalier = carteDuNiveau.createLayer(
+            "porte_cavalier",
+            tileset
+        );
+
+
+        murs.setCollisionByProperty({ estSolide: true }); 
+        trous.setCollisionByProperty({ estPassable: true });
+        porte_cavalier.setCollisionByExclusion(-1, true);
+        this.player = this.physics.add.sprite(900, 480, 'perso');
+
+        this.SpriteHitBox = this.physics.add.sprite(0, 0, 'SpriteHitBox');
+        this.SpriteHitBox.allowGravity = false;
+
+        // Je définis un dossier d'ennemis, ainsi lors de la création d'un ennemi, il suffira d'utiliser this.ennemies.create( CoordX, CoordY, Nom )
+        this.ennemies = this.physics.add.group({ allowGravity: false, collideWorldBounds: true });
+        this.ennemiUn = this.ennemies.create(400,300,'Ennemi');
+
+
+
+        // J'utilise un overlap entre mon player et mon ennemi, ce qui permet au joueur de passer au travers de l'ennemi
+        this.physics.add.overlap(this.player, this.ennemies, this.TakeDamage, null, this)
+
+        this.physics.add.collider(this.player, porte_cavalier, this.changeSceneCavalier, null, this)
+        this.physics.add.collider(this.SpriteHitBox, this.ennemies, this.KillennemiOne, null, this);
+
+        this.player.setCollideWorldBounds(true);
+        this.physics.add.collider(this.player, murs);
+        this.physics.add.collider(this.ennemiUn, murs);
+        this.physics.world.setBounds(0, 0, 992, 960);
+        this.cameras.main.setBounds(0, 0, 992, 960);
+        this.cameras.main.zoom = 2;
+        this.cameras.main.startFollow(this.player);
+        this.player.setSize(32, 32)
+        this.player.setOffset(14,48)
+
+
+        this.anims.create({
+            key: 'front',
+            frames: this.anims.generateFrameNumbers('perso', { start: 0, end: 5 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'back',
+            frames: this.anims.generateFrameNumbers('perso', { start: 6, end: 11 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'urn',
+            frames: [{ key: 'prison', frame: 0 }],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: 'eft',
+            frames: this.anims.generateFrameNumbers('prison', { start: 9, end: 17 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'Aight',
+            frames: this.anims.generateFrameNumbers('prison', { start: 0, end: 8 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+
+        //  Input Events
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.clavier = this.input.keyboard.addKeys('SHIFT');
+
+    }
+
+    update() {
+        
+        console.log(this.shiftchrono);
+        if (this.gameOver) { return; }
+
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-160);
+            this.arret = false
+            this.player.anims.play('eft', true);
+
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityX(-350);
+                this.SpriteHitBox.x = this.player.x - 32;
+                this.SpriteHitBox.y = this.player.y
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+
+
+        else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(160);
+            this.arret = false
+            this.player.anims.play('Aight', true);
+
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityX(350);
+                this.SpriteHitBox.x = this.player.x + 32;
+                this.SpriteHitBox.y = this.player.y
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+
+        }
+
+        else {
+            this.player.setVelocityX(0);
+            this.arret = true
+
+
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-160);
+            this.arret = false
+            this.player.anims.play('back', true);
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityY(-350);
+                this.SpriteHitBox.x = this.player.x ;
+                this.SpriteHitBox.y = this.player.y -32;
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+        else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(160);
+            this.arret = false
+            this.player.anims.play('front', true);
+            if (this.clavier.SHIFT.isDown && this.possibilitedash == true){
+                this.player.setVelocityY(350);
+                this.SpriteHitBox.x = this.player.x ;
+                this.SpriteHitBox.y = this.player.y +64;
+
+                if(this.shiftchrono < 200){
+                    this.shiftchrono ++;
+                }
+                if (this.shiftchrono >= 200){
+                    this.shiftchrono = 0;
+                    this.possibilitedash = false;
+                    this.SpriteHitBox.x = 0;
+                    this.SpriteHitBox.y = 0;
+                }
+                
+            }
+        }
+        else {
+            this.player.setVelocityY(0);
+
+            if (this.arret == true) {
+                this.player.anims.play('urn');
+            }
+        }
+
+
+        if (this.ennemiUn.x+3 < this.player.x-3){
+            this.ennemiUn.setVelocityX(50);
+        }
+        if (this.ennemiUn.y-3 > this.player.y+3){
+                this.ennemiUn.setVelocityY(-50);
+            }
+        if (this.ennemiUn.x-3 > this.player.x+3){
+            this.ennemiUn.setVelocityX(-50);
+        }
+        if (this.ennemiUn.y+3 < this.player.y-3){
+                this.ennemiUn.setVelocityY(50);
+            }
+
+
+            if (this.possibilitedash == false){
+                if (this.chronoshiftdeux < 360){
+                    this.chronoshiftdeux ++;
+                }
+                if (this.chronoshiftdeux >= 360){
+                    this.chronoshiftdeux = 0;
+                    this.possibilitedash = true;
+                }
+            }
+
+    }
+
+    TakeDamage(){
+        console.log("Je dois prendre des dégâts");
+        this.physics.pause();
+        this.player.setTint(0xff0000);
+        this.gameOver = true;
+    }
+    KillennemiOne(){
+        console.log("Test")
+        this.ennemiUn.disableBody(true, true);
+    }
+
+    changeSceneCavalier(player){
+        this.scene.start("salle_cavalier");
+    }
+
+}
+
+
+var config = {
+            type: Phaser.AUTO,
+            width: 1280, height: 720,
+            pixelArt : true,
+            physics: {
+            default: 'arcade',
+            arcade: {
+            gravity: { y: 0 },
+            debug: true
+            }},
+            scene: [salle_depart, salle_centre,salle_fou, salle_avant_tour,salle_tour,salle_cavalier,salle_reine],
+            };
+            new Phaser.Game(config);   
+
+
+
+
+
+
+
+</script>
+</body>
+</html>
